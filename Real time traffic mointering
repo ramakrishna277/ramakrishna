@@ -1,0 +1,71 @@
+import requests
+
+# Google Maps API key and endpoint
+API_KEY = 'your_google_maps_api_key_here'
+DIRECTIONS_URL = 'https://maps.googleapis.com/maps/api/directions/json'
+
+def fetch_traffic_data(start_point, end_point):
+    # Define request parameters
+    params = {
+        'origin': start_point,
+        'destination': end_point,
+        'key': API_KEY,
+        'departure_time': 'now',  # Fetch real-time data
+        'traffic_model': 'best_guess'  # Traffic model for predictions
+    }
+    
+    # Send request to Google Maps Directions API
+    response = requests.get(DIRECTIONS_URL, params=params)
+    
+    if response.status_code == 200:
+        data = response.json()
+        if data['status'] == 'OK':
+            # Extract relevant information
+            route = data['routes'][0]
+            leg = route['legs'][0]
+            duration = leg['duration']['text']
+            duration_in_traffic = leg['duration_in_traffic']['text']
+            distance = leg['distance']['text']
+            steps = [step['html_instructions'] for step in leg['steps']]
+            
+            # Check for incidents
+            if 'warnings' in data:
+                warnings = data['warnings']
+            else:
+                warnings = []
+            
+            return {
+                'duration': duration,
+                'duration_in_traffic': duration_in_traffic,
+                'distance': distance,
+                'steps': steps,
+                'warnings': warnings
+            }
+        else:
+            return {'error': 'Error fetching data from API'}
+    else:
+        return {'error': 'Failed to connect to the traffic service'}
+
+def display_traffic_info(traffic_data):
+    if 'error' in traffic_data:
+        print(f"Error: {traffic_data['error']}")
+    else:
+        print(f"Estimated Travel Time: {traffic_data['duration']}")
+        print(f"Estimated Travel Time with Traffic: {traffic_data['duration_in_traffic']}")
+        print(f"Distance: {traffic_data['distance']}")
+        print("Route Steps:")
+        for step in traffic_data['steps']:
+            print(f"- {step}")
+        if traffic_data['warnings']:
+            print("\nWarnings:")
+            for warning in traffic_data['warnings']:
+                print(f"- {warning}")
+
+def main():
+    start_point = input("Enter the starting point (address or coordinates): ")
+    end_point = input("Enter the destination (address or coordinates): ")
+    traffic_data = fetch_traffic_data(start_point, end_point)
+    display_traffic_info(traffic_data)
+
+if __name__ == '__main__':
+    main()
