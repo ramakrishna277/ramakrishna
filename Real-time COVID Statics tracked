@@ -1,0 +1,50 @@
+import requests
+
+# API endpoint and URL template for disease.sh
+API_URL = 'https://disease.sh/v3/covid-19'
+
+def fetch_covid_data(region):
+    # Define URL based on region type
+    if region.lower() in ['world', 'global']:
+        url = f'{API_URL}/all'
+    else:
+        url = f'{API_URL}/countries/{region}'
+
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        data = response.json()
+        if 'message' in data:
+            return {'error': data['message']}
+        else:
+            if region.lower() == 'world' or 'country' in data:
+                return {
+                    'cases': data.get('cases', 'N/A'),
+                    'deaths': data.get('deaths', 'N/A'),
+                    'recovered': data.get('recovered', 'N/A')
+                }
+            else:
+                return {
+                    'cases': data.get('cases', 'N/A'),
+                    'deaths': data.get('deaths', 'N/A'),
+                    'recovered': data.get('recovered', 'N/A')
+                }
+    else:
+        return {'error': 'Failed to connect to the API'}
+
+def display_covid_info(covid_data, region):
+    if 'error' in covid_data:
+        print(f"Error: {covid_data['error']}")
+    else:
+        print(f"COVID-19 Statistics for {region.capitalize()}:")
+        print(f"Total Cases: {covid_data['cases']}")
+        print(f"Total Deaths: {covid_data['deaths']}")
+        print(f"Total Recoveries: {covid_data['recovered']}")
+
+def main():
+    region = input("Enter the region (country, state, or city) or 'world' for global stats: ")
+    covid_data = fetch_covid_data(region)
+    display_covid_info(covid_data, region)
+
+if __name__ == '__main__':
+    main()
