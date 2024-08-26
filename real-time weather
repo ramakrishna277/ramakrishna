@@ -1,0 +1,79 @@
+mport numpy as np
+
+# Sample data for products, historical sales, and current inventory
+products = pd.DataFrame({
+    'product_id': [1, 2, 3],
+    'product_name': ['Widget A', 'Widget B', 'Widget C'],
+    'lead_time_days': [5, 7, 3]
+})
+
+historical_sales = pd.DataFrame({
+    'product_id': [1, 1, 1, 2, 2, 3, 3, 3],
+    'sales_units': [100, 120, 110, 90, 80, 150, 160, 170],
+    'month': ['Jan', 'Feb', 'Mar', 'Jan', 'Feb', 'Jan', 'Feb', 'Mar']
+})
+
+inventory = pd.DataFrame({
+    'product_id': [1, 2, 3],
+    'current_stock': [50, 30, 70]
+})
+
+def calculate_reorder_point(product_id, historical_sales, lead_time_days):
+    # Calculate average monthly sales
+    monthly_sales = historical_sales[historical_sales['product_id'] == product_id]
+    avg_monthly_sales = monthly_sales['sales_units'].mean()
+    
+    # Calculate reorder point (e.g., average monthly sales * lead time in months)
+    reorder_point = avg_monthly_sales * (lead_time_days / 30)
+    return reorder_point
+
+def check_inventory_levels(products, inventory, historical_sales):
+    alerts = []
+    for _, product in products.iterrows():
+        product_id = product['product_id']
+        lead_time_days = product['lead_time_days']
+        current_stock = inventory[inventory['product_id'] == product_id]['current_stock'].values[0]
+        
+        reorder_point = calculate_reorder_point(product_id, historical_sales, lead_time_days)
+        
+        if current_stock < reorder_point:
+            recommended_order = reorder_point - current_stock
+            alerts.append({
+                'product_id': product_id,
+                'product_name': product['product_name'],
+                'current_stock': current_stock,
+                'reorder_point': reorder_point,
+                'recommended_order': recommended_order
+            })
+    return alerts
+
+def generate_reports(inventory, historical_sales):
+    turnover_rate = pd.DataFrame(columns=['product_id', 'turnover_rate'])
+    
+    for product_id in inventory['product_id']:
+        sales_units = historical_sales[historical_sales['product_id'] == product_id]['sales_units'].sum()
+        avg_stock = inventory[inventory['product_id'] == product_id]['current_stock'].values[0]
+        turnover = sales_units / avg_stock if avg_stock != 0 else np.nan
+        turnover_rate = turnover_rate.append({'product_id': product_id, 'turnover_rate': turnover}, ignore_index=True)
+    
+    return turnover_rate
+
+def display_inventory_and_alerts(products, inventory, historical_sales):
+    alerts = check_inventory_levels(products, inventory, historical_sales)
+    turnover_reports = generate_reports(inventory, historical_sales)
+    
+    print("Current Inventory Levels:")
+    for _, row in inventory.iterrows():
+        print(f"Product ID: {row['product_id']}, Current Stock: {row['current_stock']}")
+    
+    print("\nReorder Alerts:")
+    for alert in alerts:
+        print(f"Product Name: {alert['product_name']}")
+        print(f"Current Stock: {alert['current_stock']}, Reorder Point: {alert['reorder_point']}")
+        print(f"Recommended Order Quantity: {alert['recommended_order']}\n")
+    
+    print("Inventory Turnover Rates:")
+    print(turnover_reports)
+
+if _name_ == "_main_":
+    display_inventory_and_alerts(products, inventory, historical_sales)
